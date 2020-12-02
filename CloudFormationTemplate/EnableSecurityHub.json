@@ -1,0 +1,29 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Metadata": {
+        "AWS::CloudFormation::Designer": {
+            "4cdf8bce-d35f-46e8-8763-9940b43c5ed8": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 623,
+                    "y": 171
+                },
+                "z": 0
+            }
+        }
+    },
+    "Resources": {
+        "ForcepointDLP": {
+            "Type": "AWS::SecurityHub::Hub",
+            "Properties": {},
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "4cdf8bce-d35f-46e8-8763-9940b43c5ed8"
+                }
+            }
+        }
+    }
+}
