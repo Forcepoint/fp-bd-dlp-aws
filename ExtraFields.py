@@ -18,10 +18,13 @@ class ExtraData:
         self.counter_handler(key_name)
 
         for event_num in range(len(event)):
+
+            if event[event_num] is None:
+                event[event_num] = 'none'
+
             if key_name + '.' + str(self.counter_dict[key_name]) not in self.extra_data_storage:
                 self.extra_data_storage[key_name + '.' + str(self.counter_dict[key_name])] = event[event_num]
             else:
-
                 if len(str(self.extra_data_storage[key_name + '.' + str(self.counter_dict[key_name])]) + str(
                         ',' + event[event_num])) < 1024:
                     self.extra_data_storage[key_name + '.' + str(self.counter_dict[key_name])] += ',' + event[event_num]

@@ -12,7 +12,7 @@ from Config import Configurations, DatabaseConnection
 from xmltodict import parse
 from threading import Thread
 import logging
-from pathlib import Path
+import argparse
 
 
 class ManualAWS(Thread):
@@ -61,7 +61,6 @@ class AzureAutoCheck(Thread):
                 time.sleep(300)
             elif (len(json_file)) >= 1:
                 azure_data_collector(json_file)
-                time.sleep(300)
 
 
 class AWSAutoCheck(Thread):
@@ -80,7 +79,6 @@ class AWSAutoCheck(Thread):
                 time.sleep(300)
             elif (len(json_file)) >= 1:
                 amazon_security_hub(json_file)
-                time.sleep(300)
 
 
 class CreateInsight(Thread):
@@ -97,8 +95,19 @@ class CreateInsight(Thread):
 if __name__ == "__main__":
     LogConfig()
 
+    parser = argparse.ArgumentParser(description='DLPExporter')
+    parser.add_argument('--key', action="store", dest='key', default='0')
+    parser.add_argument('--password', action="store", dest='password', default='0')
+    parser.add_argument('--username', action="store", dest='username', default='0')
+    args = parser.parse_args()
     config = Configurations.get_configurations()
-
+    if config['Database_Connection']['Trusted_Connection'] == 'no' and (args.key == 0 or '0'):
+        key = DatabaseConnection.save_password(args.password, args.username)
+        f = open("secret-key.txt", "w")
+        f.write(key)
+        f.close()
+    elif config['Database_Connection']['Trusted_Connection'] == 'no' and (args.key == 0 or '0'):
+        config.set_key(args.key)
     try:
         if config['AwsAccountId'] and config['aws_access_key_id'] \
                 and config['aws_secret_access_key'] and config['region_name']:

@@ -32,14 +32,14 @@ def get_events(cloud_provider):
     try:
         partitions = get_partitions()
 
-        events_query = 'SELECT * FROM [wbsn-data-security].[dbo].[PA_EVENTS_%s] '
+        events_query = 'SELECT TOP (49) * FROM [wbsn-data-security].[dbo].[PA_EVENTS_%s] '
         where_less_than_90 = 'where INSERT_DATE >= dateadd(MM, -3,  getdate()) and [INSERT_DATE] > Convert(datetime, ' \
                              '\'%s\' ) '
         if len(partitions) > 1:
             events_query = events_query % partitions[0]
             events_query += where_less_than_90 % Persistence.get_date(cloud_provider)[cloud_provider]
             for partition in partitions:
-                events_query += 'UNION ALL SELECT * FROM [wbsn-data-security].[dbo].[PA_EVENTS_%S]' % partition
+                events_query += 'UNION ALL SELECT * FROM [wbsn-data-security].[dbo].[PA_EVENTS_%s]' % partition
                 events_query += where_less_than_90 % Persistence.get_date(cloud_provider)[cloud_provider]
         else:
 
