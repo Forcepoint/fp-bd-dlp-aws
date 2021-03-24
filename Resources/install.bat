@@ -5,16 +5,36 @@ del .\Resources\nssm.zip
 rmdir .\Resources\nssm-2.24 /s/q
 @echo off
 setlocal
-echo [96m Creating required directories[0m
-echo [96m-----------------------------[0m
+echo [Creating required directories]
+echo [-----------------------------]
 echo.
 mkdir \XMLFileCopy
 echo.
-echo [96m Creating Service: DLPExporter[0m
-echo [96m-----------------------------[0m
-set /P user="Please enter your username: "
+@echo off
+echo [Log into Database]
+echo [-----------------]
+echo.
+set /P option="Is this your first login? (y/n): "
+if %option%==y goto passwordLogin
+if %option%==n goto keyLogin
+
+:passwordLogin
+set /P dbuser="Please enter your Database username: "
+set /P dbpassword="Please enter your Database password: "
+set /A key="None"
+goto continue
+
+:keyLogin
+set /P dbuser="Please enter your Database username: "
+set /P key="Please enter your key: "
+goto continue
+
+:continue
+echo [Creating Service: DLPExporter]
+echo [-----------------------------]
+set /P user="Please enter your domain\administrator username e.g.(.\Administrator): "
 set /P password="Please enter your administrator password: "
-Resources\nssm.exe install DLPExporter C:\fp-dlp-exporter-aws-azure-v1\DLPExporter.exe
+Resources\nssm.exe install DLPExporter C:\fp-dlp-exporter-aws-azure-v1\DLPExporter.exe --password=%dbpassword% --username=%dbuser% --key=%key%
 Resources\nssm.exe set DLPExporter AppDirectory C:\fp-dlp-exporter-aws-azure-v1
 Resources\nssm.exe set DLPExporter AppStdout C:\fp-dlp-exporter-aws-azure-v1\logs\ForcepointDLPEvents.log
 Resources\nssm.exe set DLPExporter AppStderr C:\fp-dlp-exporter-aws-azure-v1\logs\ForcepointDLPEvents.log

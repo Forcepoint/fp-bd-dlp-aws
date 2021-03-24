@@ -1,8 +1,42 @@
 import json
 from pathlib import Path
+from PasswordEncryption.PasswordHandler import decrypt_password, encrypt_password
+
+secure_key = ''
+
+
+def get_key():
+    return secure_key
+
+
+def set_key(key):
+    global secure_key
+    secure_key = key
+
+
+def get_db_config():
+    with open('Config.json', 'r') as jsonFile:
+        parsed_json = json.load(jsonFile)
+    return parsed_json
+
+
+def set_db_config(config):
+    with open('Config.json', 'w') as jsonFile:
+        json.dump(config, jsonFile, indent=4)
 
 
 class DatabaseConnection:
+
+    @staticmethod
+    def save_password(password, username):
+        key, encrypted_pwd = encrypt_password(password)
+        config = get_db_config()
+        config["Database_Connection"]['PWD'] = encrypted_pwd
+        config["Database_Connection"]['UID'] = username
+        set_db_config(config)
+        set_key(key)
+        return key
+
     @staticmethod
     def get_connection():
         with open('Config.json', 'r') as jsonFile:
@@ -16,6 +50,8 @@ class DatabaseConnection:
                     return 'none'
             else:
                 del connection_string_list['Trusted_Connection']
+                connection_string_list['PWD'] = decrypt_password(secure_key, connection_string_list['PWD']).decode(
+                    "utf-8")
                 if connection_string_list['Server'] == "" or connection_string_list['Database'] == "" or \
                         connection_string_list['UID'] == "" or connection_string_list['PWD'] == "":
                     return 'none'

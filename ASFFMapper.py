@@ -1,6 +1,7 @@
 import json
 import datetime
-
+import logging
+from logger import LogConfig
 from JsonFormatClass import JsonFormatClass, Network, Finding, RelatedFinding, Resource, Details, ProductFields, \
     Severity, UserDefinedFields
 from Config import Configurations, Persistence
@@ -279,83 +280,128 @@ def map_sql_to_azure():
                 policy_events = execute_policy_events(partition, row[0])
 
                 for policy in policy_events:
-                    extra_data_sql = ExtraData()
-                    event_data = query_events(partition, row[0])
-                    service_id = event_data[0].SERVICE_ID
-                    source_id = event_data[0].SOURCE_ID
+                    try:
 
-                    user_data = query_users(source_id)
-                    domain_id = user_data[0].DOMAIN_ID
+                        extra_data_sql = ExtraData()
+                        event_data = query_events(partition, row[0])
+                        service_id = event_data[0].SERVICE_ID
+                        source_id = event_data[0].SOURCE_ID
 
-                    services_data = query_services(service_id)
-                    destination_data = query_destinations_users(partition, row[0])
-                    formatted_date = __iso8601_format(
-                        json.dumps(event_data[0].INSERT_DATE, indent=4, sort_keys=True,
-                                   default=str)[1:-4])
+                        user_data = query_users(source_id)
+                        domain_id = user_data[0].DOMAIN_ID if len(user_data) > 0 else None
 
-                    findings_object = Finding()
-                    findings_object.GeneratorId = str(event_data[0].ID)
-                    findings_object.CreatedAt = formatted_date
-                    findings_object.Description = event_data[0].SUBJECT or "Description Not found"
+                        services_data = query_services(service_id)
+                        destination_data = query_destinations_users(partition, row[0])
+                        formatted_date = __iso8601_format(
+                            json.dumps(event_data[0].INSERT_DATE, indent=4, sort_keys=True,
+                                       default=str)[1:-4])
 
-                    findings_object.Protocol = services_data[0].PROTOCOL_ID.split("_")[1]
-                    if domain_id is not None:
-                        findings_object.SourceDomain = query_domains(domain_id)[0].NAME
-                    else:
-                        findings_object.SourceDomain = 'none'
-                    findings_object.SourceIpV4 = user_data[0].IP
-                    findings_object.SourcePort = event_data[0].PORT
+                        findings_object = Finding()
+                        findings_object.GeneratorId = str(event_data[0].ID)
+                        findings_object.CreatedAt = formatted_date
+                        findings_object.Description = event_data[0].SUBJECT or "Description Not found"
 
-                    if destination_data[0][0].DOMAIN_ID is not None:
-                        findings_object.DestinationDomain = query_domains(destination_data[0][0].DOMAIN_ID)[0].NAME
-                    else:
-                        findings_object.DestinationDomain = 'none'
+                        findings_object.Protocol = services_data[0].PROTOCOL_ID.split("_")[1]
+                        if domain_id is not None:
+                            findings_object.SourceDomain = query_domains(domain_id)[0].NAME
+                        else:
+                            findings_object.SourceDomain = 'none'
+                        findings_object.SourceIpV4 = user_data[0].IP if len(user_data) > 0 else None
+                        findings_object.SourcePort = event_data[0].PORT if len(event_data) > 0 else None
 
-                    findings_object.DestinationIpV4 = destination_data[0][0].IP
-                    findings_object.DestinationPort = destination_data[0][0].PORT
-
-                    findings_object.ExternalId = event_data[0].EXTERNAL_ID
-
-                    findings_object.Title = 'Forcepoint DLP Incident'
-                    findings_object.UpdatedAt = formatted_date
-
-                    findings_object.ForcepointDLPSourceIP = user_data[0].IP
-                    findings_object.Text = services_data[0].CHANNEL_NAME
-                    findings_object.UpdatedAt = formatted_date
-                    findings_object.UpdatedBy = services_data[0].AGENT_NAME
-
-                    extra_data_sql.extra_data_handler([query_policy_categories(policy.POLICY_CATEGORY_ID)[0].NAME],
-                                                      'RuleName')
-                    extra_data_sql.extra_data_handler([user_data[0].EMAIL], 'SourceEmail')
-                    extra_data_sql.extra_data_handler([user_data[0].EXTRA_DATA], 'SourceExtraData')
-                    extra_data_sql.extra_data_handler([user_data[0].FULL_NAME], 'SourceFullName')
-                    extra_data_sql.extra_data_handler([user_data[0].HOSTNAME], 'SourceHostname')
-                    extra_data_sql.extra_data_handler([user_data[0].LOGIN_NAME], 'SourceLoginName')
-                    # extra_data_sql.extra_data_handler([user_data[0].Username], 'SourceUsername')
-
-                    for i in range(len(destination_data)):
-                        extra_data_sql.extra_data_handler([destination_data[i][0].COMMON_NAME], 'DestinationCommonName')
-                        # user_defined_extras['DestinationUsername.' + str(i + 1)]
-                        extra_data_sql.extra_data_handler([destination_data[i][0].HOSTNAME], 'DestinationHostname')
-                        extra_data_sql.extra_data_handler([destination_data[i][0].EMAIL], 'DestinationEmail')
-                        extra_data_sql.extra_data_handler([destination_data[i][0].EXTRA_DATA], 'DestinationExtraData')
-                        if i >= 1:
-                            if destination_data[i][0].DOMAIN_ID is not None:
-                                extra_data_sql.extra_data_handler([query_domains(destination_data[i][0].DOMAIN_ID)[
-                                                                       0].NAME], 'DestinationDomain')
-
+                        try:
+                            if destination_data[0][0].DOMAIN_ID is not None:
+                                findings_object.DestinationDomain = \
+                                    query_domains(destination_data[0][0].DOMAIN_ID)[0].NAME if len(
+                                        destination_data) > 0 else None
                             else:
                                 findings_object.DestinationDomain = 'none'
-                            extra_data_sql.extra_data_handler([destination_data[i][0].IP], 'DestinationIpV4')
-                            extra_data_sql.extra_data_handler([destination_data[i][0].PORT], 'DestinationPort')
+                        except IndexError:
+                            findings_object.DestinationDomain = 'none'
 
-                    findings_object.Type = 'Forcepoint DLP'
+                        try:
+                            findings_object.DestinationIpV4 = destination_data[0][0].IP if len(
+                                destination_data) > 0 else None
+                        except IndexError:
+                            findings_object.DestinationIpV4 = 'none'
+                        try:
+                            findings_object.DestinationPort = destination_data[0][0].PORT if len(
+                                destination_data) > 0 else None
+                        except IndexError:
+                            findings_object.DestinationPort = 'none'
 
-                    findings_object.Id = 'incident_Id-%s-rule_id-%s' % (row[0], policy[0])
-                    findings_object.Severity = policy.SEVERITY
-                    findings_object.PolicyCategoryId = str(query_policy_categories(policy.POLICY_CATEGORY_ID)[0].ID)
-                    findings_object.__dict__.update(extra_data_sql.extra_data_storage)
-                    logs.append(findings_object.__dict__)
+                        findings_object.ExternalId = event_data[0].EXTERNAL_ID if len(event_data) > 0 else None
+
+                        findings_object.Title = 'Forcepoint DLP Incident'
+                        findings_object.UpdatedAt = formatted_date
+
+                        findings_object.ForcepointDLPSourceIP = user_data[0].IP if len(user_data) > 0 else None
+                        findings_object.Text = services_data[0].CHANNEL_NAME if len(services_data) > 0 else None
+                        findings_object.UpdatedAt = formatted_date
+                        findings_object.UpdatedBy = services_data[0].AGENT_NAME if len(services_data) > 0 else None
+
+                        extra_data_sql.extra_data_handler([query_policy_categories(policy.POLICY_CATEGORY_ID)[0].NAME],
+                                                          'RuleName')
+
+                        extra_data_sql.extra_data_handler([user_data[0].EMAIL if len(user_data) > 0 else None],
+                                                          'SourceEmail')
+                        extra_data_sql.extra_data_handler([user_data[0].EXTRA_DATA if len(user_data) > 0 else None],
+                                                          'SourceExtraData')
+                        extra_data_sql.extra_data_handler([user_data[0].FULL_NAME if len(user_data) > 0 else None],
+                                                          'SourceFullName')
+                        extra_data_sql.extra_data_handler([user_data[0].HOSTNAME if len(user_data) > 0 else None],
+                                                          'SourceHostname')
+                        extra_data_sql.extra_data_handler([user_data[0].LOGIN_NAME if len(user_data) > 0 else None],
+                                                          'SourceLoginName')
+
+                        for i in range(len(destination_data)):
+                            if len(destination_data[i]) > 0:
+                                extra_data_sql.extra_data_handler([destination_data[i][0].COMMON_NAME],
+                                                                  'DestinationCommonName')
+                                extra_data_sql.extra_data_handler([destination_data[i][0].HOSTNAME], 'DestinationHostname')
+                                extra_data_sql.extra_data_handler([destination_data[i][0].EMAIL], 'DestinationEmail')
+                                extra_data_sql.extra_data_handler([destination_data[i][0].EXTRA_DATA],
+                                                                  'DestinationExtraData')
+                                if i >= 1:
+                                    if destination_data[i][0].DOMAIN_ID is not None:
+                                        extra_data_sql.extra_data_handler([query_domains(destination_data[i][0].DOMAIN_ID)[
+                                                                               0].NAME], 'DestinationDomain')
+
+                                    else:
+                                        findings_object.DestinationDomain = 'none'
+                                    extra_data_sql.extra_data_handler([destination_data[i][0].IP], 'DestinationIpV4')
+                                    extra_data_sql.extra_data_handler([destination_data[i][0].PORT], 'DestinationPort')
+                            else:
+                                findings_object.DestinationCommonName = 'none'
+                                findings_object.DestinationHostname = 'none'
+                                findings_object.DestinationEmail = 'none'
+                                findings_object.DestinationExtraData = 'none'
+                                findings_object.DestinationDomain = 'none'
+                                findings_object.DestinationIpV4 = 'none'
+                                findings_object.DestinationPort = 'none'
+
+                        findings_object.Type = 'Forcepoint DLP'
+
+                        findings_object.Id = 'incident_Id-%s-rule_id-%s' % (row[0], policy[0])
+                        findings_object.Severity = policy.SEVERITY or 'none'
+                        findings_object.PolicyCategoryId = str(query_policy_categories(policy.POLICY_CATEGORY_ID)[0].ID)
+                        findings_object.__dict__.update(extra_data_sql.extra_data_storage)
+                        logs.append(findings_object.__dict__)
+
+                    except IndexError:
+                        event_data = query_events(partition, row[0])
+
+                        try:
+                            formatted_date = __iso8601_format(
+                                json.dumps(event_data[0].INSERT_DATE, indent=4, sort_keys=True,
+                                           default=str)[1:-4])
+                        except:
+                            formatted_date = None
+
+                        row_as_list = [x for x in policy]
+                        f = open("unsent-events.txt", "a")
+                        f.writelines(f'Event ID: {str(row_as_list[1])}, Created at: {str(formatted_date)}\n')
+                        f.close()
 
         logs_object = JsonFormatClass()
 
@@ -387,6 +433,7 @@ def map_sql_to_azure():
 
 def map_sql_to_asff():
     event_list, partitions = get_events('AWSUpdateDate')
+    LogConfig()
 
     if bool(partitions):
 
@@ -520,7 +567,8 @@ def map_sql_to_asff():
 
         for i in range(len(cleaned_findings)):
             cleaned_findings[i]['Severity']['Label'] = __severity_label(cleaned_findings[i]['Severity']['Normalized'])
-            cleaned_findings[i]['Severity']['Normalized'] = (__normalized_severity(__normalized_severity_from_db(cleaned_findings[i]['Severity']['Normalized'])))
+            cleaned_findings[i]['Severity']['Normalized'] = (
+                __normalized_severity(__normalized_severity_from_db(cleaned_findings[i]['Severity']['Normalized'])))
 
         if cleaned_findings.__len__() >= 1:
             date_time_obj = datetime.datetime.strptime(cleaned_findings[-1]["CreatedAt"], '%Y-%m-%dT%H:%M:%SZ')
