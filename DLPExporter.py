@@ -148,5 +148,4 @@ if __name__ == "__main__":
         logging.info("Ignore if not using Sentinel. Some fields are missing from the config (AzureCustomerId, "
                      "AzureSharedKey)")
 
-    while True:
-        pass
+    os.system("pause")

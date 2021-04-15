@@ -17,7 +17,8 @@ def table_fields_by_name(sql):
 
 
 def get_partitions():
-    get_partitions = 'SELECT [PARTITION_INDEX] FROM [wbsn-data-security].[dbo].[PA_EVENT_PARTITION_CATALOG]'
+    get_partitions = 'SELECT [PARTITION_INDEX] FROM [wbsn-data-security].[dbo].[PA_EVENT_PARTITION_CATALOG]  where ' \
+                     'STATUS = \'ONLINE_ACTIVE\' or  STATUS = \'ONLINE\''
 
     partitions = execute_sql(get_partitions).fetchall()
     normalised_partitions = []
