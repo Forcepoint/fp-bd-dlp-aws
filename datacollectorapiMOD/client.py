@@ -30,15 +30,18 @@ class DataCollectorAPIClient:
 
     # Build the API signature
     def __signature(self, date, content_length):
-        sigs = "POST\n{}\napplication/json\nx-ms-date:{}\n/api/logs".format(
-            str(content_length), date)
-        utf8_sigs = sigs.encode('utf-8')
-        decoded_shared_key = base64.b64decode(self.shared_key)
-        hmac_sha256_sigs = hmac.new(
-            decoded_shared_key, utf8_sigs, digestmod=hashlib.sha256).digest()
-        encoded_hash = base64.b64encode(hmac_sha256_sigs).decode('utf-8')
-        authorization = "SharedKey {}:{}".format(self.customer_id, encoded_hash)
-        return authorization
+        try:
+            sigs = "POST\n{}\napplication/json\nx-ms-date:{}\n/api/logs".format(
+                str(content_length), date)
+            utf8_sigs = sigs.encode('utf-8')
+            decoded_shared_key = base64.b64decode(self.shared_key)
+            hmac_sha256_sigs = hmac.new(
+                decoded_shared_key, utf8_sigs, digestmod=hashlib.sha256).digest()
+            encoded_hash = base64.b64encode(hmac_sha256_sigs).decode('utf-8')
+            authorization = "SharedKey {}:{}".format(self.customer_id, encoded_hash)
+            return authorization
+        except Exception as e:
+            raise e
 
     def __rfc1123date(self):
         return datetime.datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
@@ -49,26 +52,56 @@ class DataCollectorAPIClient:
         if not log_type.isalpha():
             raise Exception(
                 "ERROR: log_type supports only alpha characters: {}".format(log_type))
+        try:
+            body = json.dumps(json_records)
+            rfc1123date = self.__rfc1123date()
+            content_length = len(body)
+            signature = self.__signature(rfc1123date, content_length)
+            uri = "https://{}.ods.opinsights.azure.com/api/logs?api-version={}".format(
+                self.customer_id, _LOG_ANALYTICS_DATA_COLLECTOR_API_VERSION)
 
-        body = json.dumps(json_records)
-        rfc1123date = self.__rfc1123date()
-        content_length = len(body)
-        signature = self.__signature(rfc1123date, content_length)
-        uri = "https://{}.ods.opinsights.azure.com/api/logs?api-version={}".format(
-            self.customer_id, _LOG_ANALYTICS_DATA_COLLECTOR_API_VERSION)
+            """
+            time-generated-field
+            The name of a field in the data that contains the timestamp of the data item.
+            If this isn’t specified, the default is the time that the message is ingested.
+            The field format is ISO 8601 format YYYY-MM-DDThh:mm:ssZ
+            """
+            headers = {
+                'content-type': 'application/json',
+                'Authorization': signature,
+                'Log-Type': log_type,
+                'x-ms-date': rfc1123date,
+                'time-generated-field': record_timestamp,
+                'User-Agent': 'SentinelPartner-Forcepoint-DLP/1.8',
+            }
+            return requests.post(uri, data=body, headers=headers, timeout=timeout)
+        except Exception as e:
+            raise
 
-        """
-        time-generated-field
-        The name of a field in the data that contains the timestamp of the data item.
-        If this isn’t specified, the default is the time that the message is ingested.
-        The field format is ISO 8601 format YYYY-MM-DDThh:mm:ssZ
-        """
-        headers = {
-            'content-type': 'application/json',
-            'Authorization': signature,
-            'Log-Type': log_type,
-            'x-ms-date': rfc1123date,
-            'time-generated-field': record_timestamp,
-            'User-Agent': 'SentinelPartner-Forcepoint-DLP/1.8',
-        }
-        return requests.post(uri, data=body, headers=headers, timeout=timeout)
+    def health_check(self, log_type, record_timestamp='', timeout=5):
+        try:
+
+            rfc1123date = self.__rfc1123date()
+            content_length = 0
+            signature = self.__signature(rfc1123date, content_length)
+            uri = "https://{}.ods.opinsights.azure.com/api/logs?api-version={}".format(
+                self.customer_id, _LOG_ANALYTICS_DATA_COLLECTOR_API_VERSION)
+
+            """
+            time-generated-field
+            The name of a field in the data that contains the timestamp of the data item.
+            If this isn’t specified, the default is the time that the message is ingested.
+            The field format is ISO 8601 format YYYY-MM-DDThh:mm:ssZ
+            """
+            headers = {
+                'content-type': 'application/json',
+                'Authorization': signature,
+                'Log-Type': log_type,
+                'x-ms-date': rfc1123date,
+                'time-generated-field': record_timestamp,
+                'User-Agent': 'SentinelPartner-Forcepoint-DLP/1.8',
+            }
+
+            return requests.get(uri, headers=headers, timeout=timeout)
+        except Exception as e:
+            raise

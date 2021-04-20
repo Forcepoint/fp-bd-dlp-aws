@@ -1,4 +1,6 @@
+from datetime import datetime
 import pyodbc
+from future.backports.datetime import timedelta
 from Config import Persistence, DatabaseConnection
 
 
@@ -17,6 +19,7 @@ def table_fields_by_name(sql):
 
 
 def get_partitions():
+
     get_partitions = 'SELECT [PARTITION_INDEX] FROM [wbsn-data-security].[dbo].[PA_EVENT_PARTITION_CATALOG]  where ' \
                      'STATUS = \'ONLINE_ACTIVE\' or  STATUS = \'ONLINE\''
 
@@ -24,6 +27,15 @@ def get_partitions():
     normalised_partitions = []
     for partition in partitions:
         normalised_partitions.append(partition[0])
+
+    iterator = 0
+    for partitions in normalised_partitions:
+        date_string = f'{str(partitions)[0:4]}-{str(partitions)[4:6]}-{str(partitions)[6:]}'
+        date_time_obj = datetime.strptime(date_string, '%Y-%m-%d')
+        now_minus_90 = datetime.now() - timedelta(days=120)
+        if date_time_obj < now_minus_90:
+            normalised_partitions.pop(iterator)
+        iterator += 1
 
     return normalised_partitions
 
