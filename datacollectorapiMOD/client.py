@@ -78,7 +78,7 @@ class DataCollectorAPIClient:
         except Exception as e:
             raise
 
-    def health_check(self, log_type, record_timestamp='', timeout=5):
+    def health_check(self, log_type, record_timestamp='', timeout=10):
         try:
 
             rfc1123date = self.__rfc1123date()
