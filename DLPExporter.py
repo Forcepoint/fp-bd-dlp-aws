@@ -2,8 +2,12 @@
 import os
 import time
 import pyodbc
+import requests
+from requests import ReadTimeout
+
 import ASFFMapper as Mapper
 import DatabaseConnector
+from datacollectorapiMOD import client
 from logger import LogConfig
 from CloudHandlers.AzureDataCollector import azure_data_collector
 from CloudHandlers.SecurityHubTool import amazon_security_hub, insight_creator, amazon_security_hub_xml, \
@@ -55,12 +59,27 @@ class AzureAutoCheck(Thread):
 
     def run(self):
         while True:
+            customer_id = Configurations.get_configurations()['AzureCustomerId']
+            shared_key = Configurations.get_configurations()['AzureSharedKey']
+            log_type = Configurations.get_configurations()['LogName']
+            api = client.DataCollectorAPIClient(customer_id, shared_key)
 
-            json_file = Mapper.map_sql_to_azure()
-            if not json_file:
+            try:
+                health = api.health_check(log_type)
+                if health.status_code != 500:
+                    #Do logging for test version
+                    json_file, offset_time = Mapper.map_sql_to_azure()
+                    if not json_file:
+                        #logging.info("No Data received, azure thread is sleeping for 5 minutes before retrying")
+                        time.sleep(300)
+                    elif (len(json_file)) >= 1:
+                        azure_data_collector(json_file, offset_time)
+                else:
+                    logging.error("Azure cannot be reached, azure thread is sleeping for 5 minutes before retrying")
+                    time.sleep(300)
+            except (requests.exceptions.ConnectionError, ReadTimeout) as e:
+                logging.error(f'{e}: error occurred, Azure threading is sleeping for 5 minutes before retrying')
                 time.sleep(300)
-            elif (len(json_file)) >= 1:
-                azure_data_collector(json_file)
 
 
 class AWSAutoCheck(Thread):
@@ -140,6 +159,9 @@ if __name__ == "__main__":
                     logging.info('Database Connection established - Azure thread starting')
 
                     AzureAutoCheck()
+                else:
+                    logging.info('Database Connection cannot be established, please check your installation')
+
             except pyodbc.Error as ex:
                 logging.error(ex.args[1])
         else:
@@ -148,5 +170,4 @@ if __name__ == "__main__":
         logging.info("Ignore if not using Sentinel. Some fields are missing from the config (AzureCustomerId, "
                      "AzureSharedKey)")
 
-    while True:
-        pass
+    os.system("pause")

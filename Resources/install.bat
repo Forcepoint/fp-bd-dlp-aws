@@ -14,6 +14,8 @@ echo.
 echo [Log into Database]
 echo [-----------------]
 echo.
+set /P option="Are you using a trusted Database connection in your config? (y/n): "
+if %option%==y goto continue
 set /P option="Is this your first login? (y/n): "
 if %option%==y goto passwordLogin
 if %option%==n goto keyLogin
