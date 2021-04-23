@@ -1,6 +1,8 @@
 # !/usr/bin/env python3
 import os
 import time
+
+import botocore
 import pyodbc
 import requests
 from requests import ReadTimeout
@@ -78,7 +80,7 @@ class AzureAutoCheck(Thread):
                     logging.error("Azure cannot be reached, azure thread is sleeping for 5 minutes before retrying")
                     time.sleep(300)
             except (requests.exceptions.ConnectionError, ReadTimeout) as e:
-                logging.error(f'{e}: error occurred, Azure threading is sleeping for 5 minutes before retrying')
+                logging.error(f'{e}: error occurred, Azure thread is sleeping for 5 minutes before retrying')
                 time.sleep(300)
 
 
@@ -93,11 +95,16 @@ class AWSAutoCheck(Thread):
 
         while True:
 
-            json_file = Mapper.map_sql_to_asff()
+            json_file, offset_time = Mapper.map_sql_to_asff()
             if not json_file:
                 time.sleep(300)
             elif (len(json_file)) >= 1:
-                amazon_security_hub(json_file)
+                try:
+                    amazon_security_hub(json_file, offset_time)
+                except botocore.exceptions.ReadTimeoutError as exception:
+                    logging.error(f'{exception}: error occurred, AWS thread is sleeping for 5 minutes before '
+                                  f'retrying')
+                    time.sleep(300)
 
 
 class CreateInsight(Thread):
@@ -128,7 +135,7 @@ if __name__ == "__main__":
     elif config['Database_Connection']['Trusted_Connection'] == 'no' and (args.key == 0 or '0'):
         config.set_key(args.key)
     try:
-        if config['AwsAccountId'] and config['aws_access_key_id'] \
+        if config['aws_access_key_id'] \
                 and config['aws_secret_access_key'] and config['region_name']:
             logging.info('AWS is configured on')
             try:
