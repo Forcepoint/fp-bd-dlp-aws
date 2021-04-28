@@ -69,10 +69,10 @@ class AzureAutoCheck(Thread):
             try:
                 health = api.health_check(log_type)
                 if health.status_code != 500:
-                    #Do logging for test version
+                    # Do logging for test version
                     json_file, offset_time = Mapper.map_sql_to_azure()
                     if not json_file:
-                        #logging.info("No Data received, azure thread is sleeping for 5 minutes before retrying")
+                        # logging.info("No Data received, azure thread is sleeping for 5 minutes before retrying")
                         time.sleep(300)
                     elif (len(json_file)) >= 1:
                         azure_data_collector(json_file, offset_time)
@@ -135,8 +135,8 @@ if __name__ == "__main__":
     elif config['Database_Connection']['Trusted_Connection'] == 'no' and (args.key == 0 or '0'):
         config.set_key(args.key)
     try:
-        if config['aws_access_key_id'] \
-                and config['aws_secret_access_key'] and config['region_name']:
+        if config['AwsAccountId'] and config['aws_access_key_id'] and config['aws_secret_access_key'] \
+                and config['region_name']:
             logging.info('AWS is configured on')
             try:
                 if DatabaseConnection.get_connection() != 'none':
