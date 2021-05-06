@@ -115,13 +115,11 @@ class Configurations:
     @staticmethod
     def get_arn():
         region = ''
-        aws_account_id = ''
         with open('Config.json', 'r') as f:
             parsed_json = json.load(f)
             region = parsed_json['region_name']
-            aws_account_id = parsed_json['AwsAccountId']
         f.close()
-        return f'arn:aws:securityhub:{region}:{aws_account_id}:product/forcepoint/forcepoint-dlp'
+        return f'arn:aws:securityhub:{region}:365761988620:product/forcepoint/forcepoint-dlp'
 
 
 class Insights:

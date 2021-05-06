@@ -1,6 +1,9 @@
+import json
 import os
 import logging
 import collections
+import botocore
+from botocore.config import Config
 from Config import Configurations, Insights, Persistence
 import boto3
 from botocore.exceptions import EndpointConnectionError, ParamValidationError, ClientError
@@ -10,16 +13,23 @@ def enable_security_hub():
 
     try:
         aws_connection().enable_security_hub()
-    except aws_connection().exceptions.ResourceConflictException as exception:
-        logging.info(exception)
+    except (aws_connection().exceptions.ResourceConflictException, botocore.exceptions.ReadTimeoutError) as exception:
+        if type(exception) == botocore.exceptions.ReadTimeoutError:
+            logging.error(exception)
+        elif type(exception) == aws_connection().exceptions.ResourceConflictException:
+            logging.info('Account is already subscribed to Security Hub')
 
 
 def enable_import_findings_for_product():
 
+    test = Configurations.get_arn()
     try:
-        aws_connection().enable_import_findings_for_product(ProductArn=Configurations.get_arn())
-    except aws_connection().exceptions.ResourceConflictException as exception:
-        logging.info(exception)
+        aws_connection().enable_import_findings_for_product(ProductArn=test)
+    except (aws_connection().exceptions.ResourceConflictException, botocore.exceptions.ReadTimeoutError) as exception:
+        if type(exception) == botocore.exceptions.ReadTimeoutError:
+            logging.error(exception)
+        elif type(exception) == aws_connection().exceptions.ResourceConflictException:
+            logging.info('Account Already has enabled import findings for this product')
 
 
 class CreateInsight:
@@ -87,10 +97,17 @@ class CreateInsight:
 def aws_connection():
     keys = Configurations()
 
+    config = Config(
+        retries={
+            'max_attempts': 5,
+            'mode': 'standard'
+        }
+    )
     client = boto3.client('securityhub',
                           aws_access_key_id=keys.get_configurations()['aws_access_key_id'],
                           aws_secret_access_key=keys.get_configurations()['aws_secret_access_key'],
-                          region_name=keys.get_configurations()['region_name']
+                          region_name=keys.get_configurations()['region_name'],
+                          config=config
                           )
     return client
 
@@ -111,7 +128,7 @@ class InsightCreator:
         CreateInsight.second(CreateInsight())
 
 
-def amazon_security_hub(asff_findings):
+def amazon_security_hub(asff_findings, offset_time):
     try:
 
         numbers_deque = collections.deque(asff_findings)
@@ -120,18 +137,35 @@ def amazon_security_hub(asff_findings):
                 send_list = [numbers_deque.popleft() for _i in range(99)]
 
                 try:
-                    aws_connection().batch_import_findings(Findings=send_list)
-                except ParamValidationError as pv:
+                    response = aws_connection().batch_import_findings(Findings=send_list)
+                    if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+                        Persistence().set_date(offset_time, 'AWSUpdateDate')
+                        failed_count = response['FailedCount']
+                        success_count = response['SuccessCount']
+                        logging.info(
+                            f' Security Hub successful response, FailedCount : {failed_count}, SuccessCount : {success_count}')
+                        if failed_count:
+                            FailedFindings = json.dumps(response['FailedFindings'])
+                            logging.error(f'Failed Findings - {FailedFindings}')
+                except ParamValidationError as e:
 
-                    logging.error(pv.args[0])
+                    logging.error(e.args[0])
             else:
                 send_list = ([numbers_deque.popleft() for _i in range(len(numbers_deque))])
 
                 try:
-                    aws_connection().batch_import_findings(Findings=send_list)
-                except ParamValidationError as pv:
+                    response = aws_connection().batch_import_findings(Findings=send_list)
+                    if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+                        Persistence().set_date(offset_time, 'AWSUpdateDate')
+                        failed_count = response['FailedCount']
+                        success_count = response['SuccessCount']
+                        logging.info(f' Security Hub successful response, FailedCount : {failed_count}, SuccessCount : {success_count}')
+                        if failed_count:
+                            FailedFindings = json.dumps(response['FailedFindings'])
+                            logging.error(f'Failed Findings - {FailedFindings}')
+                except ParamValidationError as e:
 
-                    logging.error(pv.args[0])
+                    logging.error(e.args[0])
 
     except (EndpointConnectionError, ClientError) as exception:
 
@@ -178,6 +212,6 @@ def insight_creator():
                         CreateInsight.second(CreateInsight())
                 i += 1
 
-    except (EndpointConnectionError, ClientError) as exception:
+    except (EndpointConnectionError, ClientError, botocore.exceptions.ReadTimeoutError) as exception:
 
         logging.error(exception)

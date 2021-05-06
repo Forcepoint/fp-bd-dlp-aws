@@ -426,7 +426,6 @@ def map_sql_to_azure():
             if cleaned_findings.__len__() >= 1:
                 date_time_obj = datetime.datetime.strptime(cleaned_findings[-1]["CreatedAt"], '%Y-%m-%dT%H:%M:%SZ')
                 offset_time = date_time_obj + datetime.timedelta(seconds=1)
-                #Persistence().set_date(str(offset_time), 'AzureUpdateDate')
                 return cleaned_findings, str(offset_time)
             return cleaned_findings, None
         else:
@@ -577,7 +576,6 @@ def map_sql_to_asff():
         if cleaned_findings.__len__() >= 1:
             date_time_obj = datetime.datetime.strptime(cleaned_findings[-1]["CreatedAt"], '%Y-%m-%dT%H:%M:%SZ')
             offset_time = date_time_obj + datetime.timedelta(seconds=1)
-            Persistence().set_date(str(offset_time), 'AWSUpdateDate')
             return cleaned_findings, str(offset_time)
         return cleaned_findings, None
     else:

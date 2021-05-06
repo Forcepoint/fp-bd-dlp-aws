@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
-import requests
 from datacollectorapiMOD import client
 import logging
 import collections
-
-from requests import ReadTimeout
-
 from Config import Configurations, Persistence
 
 
@@ -20,10 +16,9 @@ def azure_api_call(customer_id, shared_key, log_type, send_list, offset_time):
             Persistence().set_date(str(offset_time), 'AzureUpdateDate')
 
 
-
 def azure_data_collector(json_records, offset_time):
-    customer_id = Configurations.get_configurations()['AzureCustomerId']
-    shared_key = Configurations.get_configurations()['AzureSharedKey']
+    customer_id = Configurations.get_configurations()['AzureWorkspaceID']
+    shared_key = Configurations.get_configurations()['AzurePrimaryKey']
     log_type = Configurations.get_configurations()['LogName']
 
     numbers_deque = collections.deque(json_records)

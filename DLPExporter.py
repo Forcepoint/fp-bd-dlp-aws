@@ -1,6 +1,8 @@
 # !/usr/bin/env python3
 import os
 import time
+
+import botocore
 import pyodbc
 import requests
 from requests import ReadTimeout
@@ -59,18 +61,18 @@ class AzureAutoCheck(Thread):
 
     def run(self):
         while True:
-            customer_id = Configurations.get_configurations()['AzureCustomerId']
-            shared_key = Configurations.get_configurations()['AzureSharedKey']
+            customer_id = Configurations.get_configurations()['AzureWorkspaceID']
+            shared_key = Configurations.get_configurations()['AzurePrimaryKey']
             log_type = Configurations.get_configurations()['LogName']
             api = client.DataCollectorAPIClient(customer_id, shared_key)
 
             try:
                 health = api.health_check(log_type)
                 if health.status_code != 500:
-                    #Do logging for test version
+                    # Do logging for test version
                     json_file, offset_time = Mapper.map_sql_to_azure()
                     if not json_file:
-                        #logging.info("No Data received, azure thread is sleeping for 5 minutes before retrying")
+                        # logging.info("No Data received, azure thread is sleeping for 5 minutes before retrying")
                         time.sleep(300)
                     elif (len(json_file)) >= 1:
                         azure_data_collector(json_file, offset_time)
@@ -78,7 +80,7 @@ class AzureAutoCheck(Thread):
                     logging.error("Azure cannot be reached, azure thread is sleeping for 5 minutes before retrying")
                     time.sleep(300)
             except (requests.exceptions.ConnectionError, ReadTimeout) as e:
-                logging.error(f'{e}: error occurred, Azure threading is sleeping for 5 minutes before retrying')
+                logging.error(f'{e}: error occurred, Azure thread is sleeping for 5 minutes before retrying')
                 time.sleep(300)
 
 
@@ -93,11 +95,16 @@ class AWSAutoCheck(Thread):
 
         while True:
 
-            json_file = Mapper.map_sql_to_asff()
+            json_file, offset_time = Mapper.map_sql_to_asff()
             if not json_file:
                 time.sleep(300)
             elif (len(json_file)) >= 1:
-                amazon_security_hub(json_file)
+                try:
+                    amazon_security_hub(json_file, offset_time)
+                except botocore.exceptions.ReadTimeoutError as exception:
+                    logging.error(f'{exception}: error occurred, AWS thread is sleeping for 5 minutes before '
+                                  f'retrying')
+                    time.sleep(300)
 
 
 class CreateInsight(Thread):
@@ -128,8 +135,8 @@ if __name__ == "__main__":
     elif config['Database_Connection']['Trusted_Connection'] == 'no' and (args.key == 0 or '0'):
         config.set_key(args.key)
     try:
-        if config['AwsAccountId'] and config['aws_access_key_id'] \
-                and config['aws_secret_access_key'] and config['region_name']:
+        if config['AwsAccountId'] and config['aws_access_key_id'] and config['aws_secret_access_key'] \
+                and config['region_name']:
             logging.info('AWS is configured on')
             try:
                 if DatabaseConnection.get_connection() != 'none':
@@ -150,7 +157,7 @@ if __name__ == "__main__":
                      "aws_access_key_id, aws_secret_access_key, region_name)")
 
     try:
-        if config['AzureCustomerId'] and config['AzureSharedKey']:
+        if config['AzureWorkspaceID'] and config['AzurePrimaryKey']:
             logging.info('Azure is configured on')
 
             try:
@@ -167,7 +174,7 @@ if __name__ == "__main__":
         else:
             logging.info("configure the config.json if you need azure")
     except KeyError:
-        logging.info("Ignore if not using Sentinel. Some fields are missing from the config (AzureCustomerId, "
-                     "AzureSharedKey)")
+        logging.info("Ignore if not using Sentinel. Some fields are missing from the config (AzureWorkspaceID, "
+                     "AzurePrimaryKey)")
 
     os.system("pause")
