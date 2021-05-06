@@ -61,8 +61,8 @@ class AzureAutoCheck(Thread):
 
     def run(self):
         while True:
-            customer_id = Configurations.get_configurations()['AzureCustomerId']
-            shared_key = Configurations.get_configurations()['AzureSharedKey']
+            customer_id = Configurations.get_configurations()['AzureWorkspaceID']
+            shared_key = Configurations.get_configurations()['AzurePrimaryKey']
             log_type = Configurations.get_configurations()['LogName']
             api = client.DataCollectorAPIClient(customer_id, shared_key)
 
@@ -157,7 +157,7 @@ if __name__ == "__main__":
                      "aws_access_key_id, aws_secret_access_key, region_name)")
 
     try:
-        if config['AzureCustomerId'] and config['AzureSharedKey']:
+        if config['AzureWorkspaceID'] and config['AzurePrimaryKey']:
             logging.info('Azure is configured on')
 
             try:
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         else:
             logging.info("configure the config.json if you need azure")
     except KeyError:
-        logging.info("Ignore if not using Sentinel. Some fields are missing from the config (AzureCustomerId, "
-                     "AzureSharedKey)")
+        logging.info("Ignore if not using Sentinel. Some fields are missing from the config (AzureWorkspaceID, "
+                     "AzurePrimaryKey)")
 
     os.system("pause")

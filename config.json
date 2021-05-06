@@ -14,7 +14,7 @@
     "UID": "",
     "PWD": ""
   },
-  "AzureCustomerId": "",
-  "AzureSharedKey": "",
+  "AzureWorkspaceID": "",
+  "AzurePrimaryKey": "",
   "LogName": "ForcepointDLPEvents"
 }
