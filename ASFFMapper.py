@@ -299,6 +299,7 @@ def map_sql_to_azure():
                                            default=str)[1:-4])
 
                             findings_object = Finding()
+                            findings_object.Transaction_Size_Bytes = event_data[0].ATT_TOTAL_SIZE
                             findings_object.GeneratorId = str(event_data[0].ID)
                             findings_object.CreatedAt = formatted_date
                             findings_object.Description = event_data[0].SUBJECT or "Description Not found"
