@@ -1,6 +1,9 @@
 # !/usr/bin/env python3
 import os
+import sys
 import time
+
+from past.builtins import raw_input
 
 import botocore
 import pyodbc
@@ -62,7 +65,7 @@ class AzureAutoCheck(Thread):
     def run(self):
         while True:
             customer_id = Configurations.get_configurations()['AzureWorkspaceID']
-            shared_key = Configurations.get_configurations()['AzurePrimaryKey']
+            shared_key = Configurations.get_configurations()['Azure PrimaryKey']
             log_type = Configurations.get_configurations()['LogName']
             api = client.DataCollectorAPIClient(customer_id, shared_key)
 
@@ -122,18 +125,14 @@ if __name__ == "__main__":
     LogConfig()
 
     parser = argparse.ArgumentParser(description='DLPExporter')
-    parser.add_argument('--key', action="store", dest='key', default='0')
     parser.add_argument('--password', action="store", dest='password', default='0')
     parser.add_argument('--username', action="store", dest='username', default='0')
     args = parser.parse_args()
     config = Configurations.get_configurations()
-    if config['Database_Connection']['Trusted_Connection'] == 'no' and (args.key == 0 or '0'):
-        key = DatabaseConnection.save_password(args.password, args.username)
-        f = open("secret-key.txt", "w")
-        f.write(key)
-        f.close()
-    elif config['Database_Connection']['Trusted_Connection'] == 'no' and (args.key == 0 or '0'):
-        config.set_key(args.key)
+    if (args.password != '0') and (args.username != '0'):
+        DatabaseConnection.save_password(args.password, args.username)
+        sys.exit(0)
+
     try:
         if config['AwsAccountId'] and config['aws_access_key_id'] and config['aws_secret_access_key'] \
                 and config['region_name']:
@@ -177,4 +176,4 @@ if __name__ == "__main__":
         logging.info("Ignore if not using Sentinel. Some fields are missing from the config (AzureWorkspaceID, "
                      "AzurePrimaryKey)")
 
-    os.system("pause")
+    raw_input('')

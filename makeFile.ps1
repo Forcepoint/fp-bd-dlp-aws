@@ -2,6 +2,9 @@
 Write-Output [96m----------------[0m
 Write-Output -
 Write-Output -
+$source = 'https://bootstrap.pypa.io/get-pip.py'
+$destination = 'Resources\get-pip.py'
+Invoke-WebRequest -Uri $source -OutFile $destination
 python Resources\get-pip.py
 
 Write-Output [96m Installing required packages[0m
@@ -9,13 +12,16 @@ Write-Output [96m-----------------------------[0m
 Write-Output -
 Write-Output -
 python -m pip install -r requirements.txt
-pip install git+git://github.com/pyinstaller/pyinstaller.git@9dd34bdfbaeaa4e0459bd3051d1caf0c7d75073f
+
+$AESKey = New-Object Byte[] 32
+[Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($AESKey)
+python add_key.py --key=$AESKey
 
 Write-Output [96m Creating python exe[0m
 Write-Output [96m-----------------------------[0m
 Write-Output -
 Write-Output -
-pyinstaller --onefile DLPExporter.py
+pyinstaller --onefile --key "$AESKey" DLPExporter.py
 
 Write-Output [96m Choose modules to be installed[0m
 Write-Output [96m--------------------------------[0m
@@ -95,9 +101,8 @@ Write-Output [96m Creating fp-dlp-exporter-aws-azure-v1-8-3.zip[0m
 Write-Output [96m-----------------------------[0m
 Write-Output -
 Write-Output -
-
-
 Compress-Archive .\fp-dlp-exporter-aws-azure-v1 .\fp-dlp-exporter-aws-azure-v1-8-3.zip
+
 Write-Output [96m Clean up[0m
 Write-Output [96m-----------------------------[0m
 Write-Output -
@@ -107,3 +112,5 @@ Remove-Item –path .\fp-dlp-exporter-aws-azure-v1 –recurse
 Remove-Item –path .\build –recurse
 Remove-Item –path .\dist –recurse
 Remove-Item –path .\DLPExporter.spec –recurse
+Remove-Item –path .\Resources\get-pip.py –recurse
+python add_key.py --key=None
