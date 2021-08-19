@@ -72,8 +72,12 @@ class AzureAutoCheck(Thread):
             try:
                 health = api.health_check(log_type)
                 if health.status_code != 500:
-                    # Do logging for test version
-                    json_file, offset_time = Mapper.map_sql_to_azure()
+                    try:
+                        json_file, offset_time = Mapper.map_sql_to_azure()
+                    except Exception as e:
+                        logging.error(f"Error Database May not have been initialized")
+                        json_file = None
+
                     if not json_file:
                         # logging.info("No Data received, azure thread is sleeping for 5 minutes before retrying")
                         time.sleep(300)
@@ -98,7 +102,12 @@ class AWSAutoCheck(Thread):
 
         while True:
 
-            json_file, offset_time = Mapper.map_sql_to_asff()
+            try:
+                json_file, offset_time = Mapper.map_sql_to_asff()
+            except Exception as e:
+                logging.error(f"Error Database May not have been initialized")
+                json_file = None
+
             if not json_file:
                 time.sleep(300)
             elif (len(json_file)) >= 1:

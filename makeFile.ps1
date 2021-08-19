@@ -97,11 +97,11 @@ if ($azureInstall -eq $false) {
 }
 
 
-Write-Output [96m Creating fp-dlp-exporter-aws-azure-v1-8-3.zip[0m
+Write-Output [96m Creating fp-dlp-exporter-aws-azure-v1-9-0.zip[0m
 Write-Output [96m-----------------------------[0m
 Write-Output -
 Write-Output -
-Compress-Archive .\fp-dlp-exporter-aws-azure-v1 .\fp-dlp-exporter-aws-azure-v1-8-3.zip
+Compress-Archive .\fp-dlp-exporter-aws-azure-v1 .\fp-dlp-exporter-aws-azure-v1-9-0.zip
 
 Write-Output [96m Clean up[0m
 Write-Output [96m-----------------------------[0m
