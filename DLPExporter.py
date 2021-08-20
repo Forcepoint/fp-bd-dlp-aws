@@ -1,6 +1,9 @@
 # !/usr/bin/env python3
 import os
+import sys
 import time
+
+from past.builtins import raw_input
 
 import botocore
 import pyodbc
@@ -69,8 +72,12 @@ class AzureAutoCheck(Thread):
             try:
                 health = api.health_check(log_type)
                 if health.status_code != 500:
-                    # Do logging for test version
-                    json_file, offset_time = Mapper.map_sql_to_azure()
+                    try:
+                        json_file, offset_time = Mapper.map_sql_to_azure()
+                    except Exception as e:
+                        logging.error(f"Error Database May not have been initialized")
+                        json_file = None
+
                     if not json_file:
                         # logging.info("No Data received, azure thread is sleeping for 5 minutes before retrying")
                         time.sleep(300)
@@ -95,7 +102,12 @@ class AWSAutoCheck(Thread):
 
         while True:
 
-            json_file, offset_time = Mapper.map_sql_to_asff()
+            try:
+                json_file, offset_time = Mapper.map_sql_to_asff()
+            except Exception as e:
+                logging.error(f"Error Database May not have been initialized")
+                json_file = None
+
             if not json_file:
                 time.sleep(300)
             elif (len(json_file)) >= 1:
@@ -122,18 +134,14 @@ if __name__ == "__main__":
     LogConfig()
 
     parser = argparse.ArgumentParser(description='DLPExporter')
-    parser.add_argument('--key', action="store", dest='key', default='0')
     parser.add_argument('--password', action="store", dest='password', default='0')
     parser.add_argument('--username', action="store", dest='username', default='0')
     args = parser.parse_args()
     config = Configurations.get_configurations()
-    if config['Database_Connection']['Trusted_Connection'] == 'no' and (args.key == 0 or '0'):
-        key = DatabaseConnection.save_password(args.password, args.username)
-        f = open("secret-key.txt", "w")
-        f.write(key)
-        f.close()
-    elif config['Database_Connection']['Trusted_Connection'] == 'no' and (args.key == 0 or '0'):
-        config.set_key(args.key)
+    if (args.password != '0') and (args.username != '0'):
+        DatabaseConnection.save_password(args.password, args.username)
+        sys.exit(0)
+
     try:
         if config['AwsAccountId'] and config['aws_access_key_id'] and config['aws_secret_access_key'] \
                 and config['region_name']:
@@ -177,4 +185,4 @@ if __name__ == "__main__":
         logging.info("Ignore if not using Sentinel. Some fields are missing from the config (AzureWorkspaceID, "
                      "AzurePrimaryKey)")
 
-    os.system("pause")
+    raw_input('')

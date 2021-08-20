@@ -1,20 +1,19 @@
 {
-  "AwsAccountId": "",
-  "aws_access_key_id": "",
-  "aws_secret_access_key": "",
-  "region_name": "",
-  "file_location": "/XMLFileCopy",
-  "HIGH": true,
-  "MEDIUM": true,
-  "LOW": true,
-  "Database_Connection": {
-    "Server": "",
-    "Database": "",
-    "Trusted_Connection": "yes",
-    "UID": "",
-    "PWD": ""
-  },
-  "AzureWorkspaceID": "",
-  "AzurePrimaryKey": "",
-  "LogName": "ForcepointDLPEvents"
+    "AwsAccountId": "",
+    "aws_access_key_id": "",
+    "aws_secret_access_key": "",
+    "region_name": "",
+    "file_location": "/XMLFileCopy",
+    "HIGH": true,
+    "MEDIUM": true,
+    "LOW": true,
+    "Database_Connection": {
+        "Server": "",
+        "Database": "",
+        "Trusted_Connection": "yes",
+        "UID": ""
+    },
+    "AzureWorkspaceID": "",
+    "AzurePrimaryKey": "",
+    "LogName": "ForcepointDLPEvents"
 }
