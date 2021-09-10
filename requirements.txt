@@ -8,3 +8,4 @@ pyinstaller==4.5
 tinyaes==1.0.1
 future~=0.18.2
 pycryptodomex
+loguru~=0.5.3

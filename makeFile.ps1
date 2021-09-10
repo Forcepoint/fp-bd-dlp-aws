@@ -21,6 +21,7 @@ Write-Output [96m Creating python exe[0m
 Write-Output [96m-----------------------------[0m
 Write-Output -
 Write-Output -
+pyinstaller --onefile Service.py
 pyinstaller --onefile --key "$AESKey" DLPExporter.py
 
 Write-Output [96m Choose modules to be installed[0m
@@ -40,6 +41,7 @@ mkdir .\fp-dlp-exporter-aws-azure-v1\Remediation_script
 mkdir .\fp-dlp-exporter-aws-azure-v1\Resources
 xcopy .\Resources .\fp-dlp-exporter-aws-azure-v1\Resources /s /e
 move-item .\dist\DLPExporter.exe .\fp-dlp-exporter-aws-azure-v1
+move-item .\dist\Service.exe .\fp-dlp-exporter-aws-azure-v1
 move-item .\fp-dlp-exporter-aws-azure-v1\Resources\install.bat .\fp-dlp-exporter-aws-azure-v1
 mkdir .\fp-dlp-exporter-aws-azure-v1\ServiceScripts
 move-item .\fp-dlp-exporter-aws-azure-v1\Resources\restart.bat .\fp-dlp-exporter-aws-azure-v1\ServiceScripts
@@ -97,11 +99,11 @@ if ($azureInstall -eq $false) {
 }
 
 
-Write-Output [96m Creating fp-dlp-exporter-aws-azure-v1-9-0.zip[0m
+Write-Output [96m Creating fp-dlp-exporter-aws-azure-v1-9-1.zip[0m
 Write-Output [96m-----------------------------[0m
 Write-Output -
 Write-Output -
-Compress-Archive .\fp-dlp-exporter-aws-azure-v1 .\fp-dlp-exporter-aws-azure-v1-9-0.zip
+Compress-Archive .\fp-dlp-exporter-aws-azure-v1 .\fp-dlp-exporter-aws-azure-v1-9-1.zip
 
 Write-Output [96m Clean up[0m
 Write-Output [96m-----------------------------[0m
@@ -112,5 +114,6 @@ Remove-Item –path .\fp-dlp-exporter-aws-azure-v1 –recurse
 Remove-Item –path .\build –recurse
 Remove-Item –path .\dist –recurse
 Remove-Item –path .\DLPExporter.spec –recurse
+Remove-Item –path .\Service.spec –recurse
 Remove-Item –path .\Resources\get-pip.py –recurse
 python add_key.py --key=None

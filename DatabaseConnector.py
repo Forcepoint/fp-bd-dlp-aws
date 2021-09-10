@@ -66,7 +66,10 @@ def get_events(cloud_provider):
 
 def execute_sql(sql_statement):
 
-    conn = pyodbc.connect('Driver={SQL Server};' + DatabaseConnection.get_connection())
+    # old connector
+    # connection_string = 'Driver={SQL Server};' + DatabaseConnection.get_connection()
+    connection_string = 'Driver={ODBC Driver 17 for SQL Server};' + DatabaseConnection.get_connection()
+    conn = pyodbc.connect(connection_string)
     cursor = conn.cursor()
     return cursor.execute(sql_statement)
 
