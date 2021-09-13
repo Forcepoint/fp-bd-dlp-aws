@@ -114,7 +114,7 @@ class AWSAutoCheck(Thread):
 
             if not json_file:
                 # self.logger_.info("No Data received, aws thread is sleeping for 5 minutes before retrying")
-                time.sleep(1)
+                time.sleep(300)
             elif (len(json_file)) >= 1:
                 try:
                     amazon_security_hub(json_file, offset_time, self.logger_)
