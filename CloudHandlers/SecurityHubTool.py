@@ -1,13 +1,12 @@
 import json
 import os
-import logging
 import collections
 import botocore
 from botocore.config import Config
 from Config import Configurations, Insights, Persistence
 import boto3
 from botocore.exceptions import EndpointConnectionError, ParamValidationError, ClientError
-
+from loguru import logger
 
 def enable_security_hub():
 
@@ -15,9 +14,9 @@ def enable_security_hub():
         aws_connection().enable_security_hub()
     except (aws_connection().exceptions.ResourceConflictException, botocore.exceptions.ReadTimeoutError) as exception:
         if type(exception) == botocore.exceptions.ReadTimeoutError:
-            logging.error(exception)
+            logger.error(exception)
         elif type(exception) == aws_connection().exceptions.ResourceConflictException:
-            logging.info('Account is already subscribed to Security Hub')
+            logger.info('Account is already subscribed to Security Hub')
 
 
 def enable_import_findings_for_product():
@@ -27,9 +26,9 @@ def enable_import_findings_for_product():
         aws_connection().enable_import_findings_for_product(ProductArn=test)
     except (aws_connection().exceptions.ResourceConflictException, botocore.exceptions.ReadTimeoutError) as exception:
         if type(exception) == botocore.exceptions.ReadTimeoutError:
-            logging.error(exception)
+            logger.error(exception)
         elif type(exception) == aws_connection().exceptions.ResourceConflictException:
-            logging.info('Account Already has enabled import findings for this product')
+            logger.info('Account Already has enabled import findings for this product')
 
 
 class CreateInsight:
@@ -128,7 +127,7 @@ class InsightCreator:
         CreateInsight.second(CreateInsight())
 
 
-def amazon_security_hub(asff_findings, offset_time):
+def amazon_security_hub(asff_findings, offset_time, logger_obj):
     try:
 
         numbers_deque = collections.deque(asff_findings)
@@ -142,14 +141,14 @@ def amazon_security_hub(asff_findings, offset_time):
                         Persistence().set_date(offset_time, 'AWSUpdateDate')
                         failed_count = response['FailedCount']
                         success_count = response['SuccessCount']
-                        logging.info(
+                        logger_obj.info(
                             f' Security Hub successful response, FailedCount : {failed_count}, SuccessCount : {success_count}')
                         if failed_count:
                             FailedFindings = json.dumps(response['FailedFindings'])
-                            logging.error(f'Failed Findings - {FailedFindings}')
+                            logger_obj.error(f'Failed Findings - {FailedFindings}')
                 except ParamValidationError as e:
 
-                    logging.error(e.args[0])
+                    logger_obj.error(e.args[0])
             else:
                 send_list = ([numbers_deque.popleft() for _i in range(len(numbers_deque))])
 
@@ -159,37 +158,37 @@ def amazon_security_hub(asff_findings, offset_time):
                         Persistence().set_date(offset_time, 'AWSUpdateDate')
                         failed_count = response['FailedCount']
                         success_count = response['SuccessCount']
-                        logging.info(f' Security Hub successful response, FailedCount : {failed_count}, SuccessCount : {success_count}')
+                        logger_obj.info(f' Security Hub successful response, FailedCount : {failed_count}, SuccessCount : {success_count}')
                         if failed_count:
                             FailedFindings = json.dumps(response['FailedFindings'])
-                            logging.error(f'Failed Findings - {FailedFindings}')
+                            logger_obj.error(f'Failed Findings - {FailedFindings}')
                 except ParamValidationError as e:
 
-                    logging.error(e.args[0])
+                    logger_obj.error(e.args[0])
 
     except (EndpointConnectionError, ClientError) as exception:
 
-        logging.error(exception)
+        logger_obj.error(exception)
 
 
-def amazon_security_hub_xml(asff_findings, xml_file_name):
+def amazon_security_hub_xml(asff_findings, xml_file_name, logger_obj):
     try:
         try:
 
             response = aws_connection().batch_import_findings(Findings=asff_findings)
 
         except ParamValidationError as pv:
-            logging.error(pv.args[0])
+            logger_obj.error(pv.args[0])
 
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
             os.remove(xml_file_name)
 
     except (EndpointConnectionError, ClientError) as exception:
 
-        logging.error(exception)
+        logger_obj.error(exception)
 
 
-def insight_creator():
+def insight_creator(logger_obj):
     try:
 
         get_insights = aws_connection().get_insights()
@@ -214,4 +213,4 @@ def insight_creator():
 
     except (EndpointConnectionError, ClientError, botocore.exceptions.ReadTimeoutError) as exception:
 
-        logging.error(exception)
+        logger_obj.error(exception)

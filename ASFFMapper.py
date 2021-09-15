@@ -1,14 +1,12 @@
 import json
 import datetime
-import logging
-from logger import LogConfig
 from JsonFormatClass import JsonFormatClass, Network, Finding, RelatedFinding, Resource, Details, ProductFields, \
     Severity, UserDefinedFields
 from Config import Configurations, Persistence
 from DatabaseConnector import get_events, execute_policy_events, \
     query_events, query_services, query_users, query_domains, query_destinations_users, query_policy_categories
 from ExtraFields import ExtraData
-
+from loguru import logger
 
 def remove_null_items(d):
     if type(d) is dict:
@@ -432,14 +430,14 @@ def map_sql_to_azure():
         else:
             return None, 'None'
     except Exception as e:
-        logging.error(f"Error {e} ocurred")
+        logger.error(f"Error {e} ocurred")
+
         raise e
 
 
 def map_sql_to_asff():
     try:
         event_list, partitions = get_events('AWSUpdateDate')
-        LogConfig()
 
         if bool(partitions):
 
