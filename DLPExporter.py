@@ -77,7 +77,9 @@ class AzureAutoCheck(Thread):
                     try:
                         json_file, offset_time = Mapper.map_sql_to_azure()
                     except Exception as e:
+                      
                         self.logger_.error(f"Error Database May not have been initialized")
+
                         json_file = None
 
                     if not json_file:
@@ -110,6 +112,7 @@ class AWSAutoCheck(Thread):
                 json_file, offset_time = Mapper.map_sql_to_asff()
             except Exception as e:
                 self.logger_.error(f"Error Database May not have been initialized")
+
                 json_file = None
 
             if not json_file:
@@ -155,6 +158,7 @@ if __name__ == "__main__":
                    "level": "INFO", 'rotation': "500 MB", 'enqueue': True, 'retention': 5}])
 
     logger_args = logger
+
     try:
         if config['AwsAccountId'] and config['aws_access_key_id'] and config['aws_secret_access_key'] \
                 and config['region_name']:

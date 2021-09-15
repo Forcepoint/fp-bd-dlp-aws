@@ -431,6 +431,7 @@ def map_sql_to_azure():
             return None, 'None'
     except Exception as e:
         logger.error(f"Error {e} ocurred")
+
         raise e
 
 
